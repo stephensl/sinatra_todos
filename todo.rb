@@ -1,5 +1,6 @@
 require "sinatra"
 require "sinatra/reloader"
+require "sinatra/content_for"
 require "tilt/erubis"
 
 configure do
@@ -51,11 +52,43 @@ post "/lists" do
     session[:error] = error
     erb :new_list, layout: :layout
   else
-    session[:lists] << { name: list_name, id: list_id, todos: [] }
+    session[:lists] << { name: list_name, todos: [] }
     session[:success] = "The list has been created."
     redirect "/lists"
   end
 end
+
+# View Single List
+get "/lists/:id" do 
+  @id = params[:id].to_i
+  @list = session[:lists][@id]
+  erb :list, layout: :layout
+end 
+
+# Edit Existing List 
+get "/lists/:id/edit" do
+  id = params[:id].to_i
+  @list = session[:lists][id]
+  erb :edit_list, layout: :layout
+end 
+
+# Update Existing List
+post "/lists/:id" do
+  list_name = params[:list_name].strip
+  id = params[:id].to_i
+  @list = session[:lists][id]
+
+  error = error_for_list_name(list_name)
+
+  if error
+    session[:error] = error
+    erb :edit_list, layout: :layout
+  else
+    @list[:name] = list_name
+    session[:success] = "The list has been updated."
+    redirect "/lists/#{id}"
+  end
+end 
 
 
 # Create page for each individual List
