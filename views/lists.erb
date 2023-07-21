@@ -1,12 +1,15 @@
+
+
 <ul id="lists">
-  <%= @lists %>
   <% @lists.each do |list| %>
     <li>
       <a>
         <h2><%= list[:name] %></h2> 
-        <p><%= list[:todos].size %><p>
+        <p><%= list[:id] %></p>
+        <p><%= list[:todos].size %></p>
       </a>
     </li>
   <% end %>
 </ul>
-  
+
+<a href="/lists/new">New List</a>

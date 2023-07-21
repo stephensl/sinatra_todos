@@ -2,29 +2,74 @@ require "sinatra"
 require "sinatra/reloader"
 require "tilt/erubis"
 
-configure do 
-  enable :session
-  set :session_secret, "628141d15b5c99de6aac2aef1a7b96b25ca8dfb8d4e20f0d9a22db037e245596"
-end 
+configure do
+  enable :sessions
+  set :session_secret, SecureRandom.hex(32)
+end
 
-#set :session_secret, SecureRandom.hex(32)
-
-before do 
+before do
   session[:lists] ||= []
-end 
+end
 
-get "/" do 
+get "/" do
   redirect "/lists"
-end 
+end
 
+# GET  /lists          -> view all lists
+# GET  /lists/new      -> new list form
+# POST /lists          -> create new list
+# GET  /lists/1        -> view a single list
+
+# View all of lists
 get "/lists" do
   @lists = session[:lists]
   erb :lists, layout: :layout
 end
 
-get "/lists/new" do 
-  session[:lists] << { name: "New List", todos: [] }
-  redirect "/lists"
-end 
+# Render the new list form
+get "/lists/new" do
+  erb :new_list, layout: :layout
+end
+
+# Return an error message if the name is invalid. Return nil if name is valid.
+def error_for_list_name(name)
+  if !name.size.between?(1, 100)
+    "List name must be between 1 and 100 characters."
+  elsif session[:lists].any? { |list| list[:name] == name }
+    "List name must be unique."
+  end
+end
+
+# Create a new list
+post "/lists" do
+  list_name = params[:list_name].strip
+  list_id = session[:lists].size
+
+  error = error_for_list_name(list_name)
+
+  if error
+    session[:error] = error
+    erb :new_list, layout: :layout
+  else
+    session[:lists] << { name: list_name, id: list_id, todos: [] }
+    session[:success] = "The list has been created."
+    redirect "/lists"
+  end
+end
 
 
+# Create page for each individual List
+
+# URL pattern lists/:id 
+  # ex: lists/1
+
+# Create route: 
+  # need way to assign identifier to list
+    # when list is created?
+    # stored in session?
+      # @lists.size = session[:list_id]
+
+  # need way for user to navigate to list 
+  # 
+
+# Create view: 
