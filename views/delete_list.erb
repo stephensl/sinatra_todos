@@ -1,0 +1,4 @@
+<% @lists.each do |list|%>
+
+<%= @lists.delete(list) if list[:id] == params[:id]%>
+

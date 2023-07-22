@@ -44,7 +44,6 @@ end
 # Create a new list
 post "/lists" do
   list_name = params[:list_name].strip
-  list_id = session[:lists].size
 
   error = error_for_list_name(list_name)
 
@@ -67,8 +66,8 @@ end
 
 # Edit Existing List 
 get "/lists/:id/edit" do
-  id = params[:id].to_i
-  @list = session[:lists][id]
+  @id = params[:id].to_i
+  @list = session[:lists][@id]
   erb :edit_list, layout: :layout
 end 
 
@@ -90,19 +89,16 @@ post "/lists/:id" do
   end
 end 
 
+def delete_list(lists, id)
+    lists.delete_at(id)
+end
 
-# Create page for each individual List
-
-# URL pattern lists/:id 
-  # ex: lists/1
-
-# Create route: 
-  # need way to assign identifier to list
-    # when list is created?
-    # stored in session?
-      # @lists.size = session[:list_id]
-
-  # need way for user to navigate to list 
-  # 
-
-# Create view: 
+post "/lists/:id/delete" do 
+  @lists = session[:lists]
+  @id = params[:id].to_i
+  
+  delete_list(@lists, @id)
+  
+  session[:success] = "List Removed"
+  redirect "/lists"
+end 
