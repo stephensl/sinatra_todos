@@ -8,6 +8,14 @@ configure do
   set :session_secret, SecureRandom.hex(32)
 end
 
+configure do
+  set :erb, :escape_html => true
+end
+
+not_found do 
+  redirect "/"
+end 
+
 helpers do 
   def list_complete?(list)
     todos_count(list) > 0 && todos_remaining_count(list) == 0 
@@ -56,10 +64,13 @@ get "/" do
   redirect "/lists"
 end
 
-# GET  /lists          -> view all lists
-# GET  /lists/new      -> new list form
-# POST /lists          -> create new list
-# GET  /lists/1        -> view a single list
+def load_list(index)
+  list = session[:lists][index] if index && session[:lists][index]
+  return list if list 
+
+  session[:error] = "The specified list was not found."
+  redirect "/lists"
+end 
 
 # View list of all lists
 get "/lists" do
@@ -106,14 +117,14 @@ end
 # View Single List
 get "/lists/:id" do 
   @list_id = params[:id].to_i
-  @list = session[:lists][@list_id]
+  @list = load_list(@list_id)
   erb :list, layout: :layout
 end 
 
 # Edit Existing List 
 get "/lists/:id/edit" do
   @id = params[:id].to_i
-  @list = session[:lists][@id]
+  @list = load_list(@id)
   erb :edit_list, layout: :layout
 end 
 
@@ -121,7 +132,7 @@ end
 post "/lists/:id" do
   list_name = params[:list_name].strip
   id = params[:id].to_i
-  @list = session[:lists][id]
+  @list = load_list(id)
 
   error = error_for_list_name(list_name)
 
@@ -156,10 +167,10 @@ post "/lists/:id/delete" do
   redirect "/lists"
 end 
 
-# Add a todo to list
+# Add a new todo to list
 post "/lists/:list_id/todos" do 
   @list_id = params[:list_id].to_i
-  @list = session[:lists][@list_id]
+  @list = load_list(@list_id)
   text = params[:todo].strip 
 
   error = error_for_todo(text)
@@ -176,7 +187,7 @@ end
 # Delete todo item from list 
 post "/lists/:list_id/todos/:todo_id/delete" do 
   @list_id = params[:list_id].to_i
-  @list = session[:lists][@list_id]
+  @list = load_list(@list_id)
 
   @todo_id = params[:todo_id].to_i
   
@@ -189,7 +200,7 @@ end
 # Update the status of a todo 
 post "/lists/:list_id/todos/:todo_id" do 
   @list_id = params[:list_id].to_i
-  @list = session[:lists][@list_id]
+  @list = load_list(@list_id)
 
   @todo_id = params[:todo_id].to_i
   is_completed = params[:completed] == "true"
@@ -205,7 +216,7 @@ end
 # Mark all todos complete for single list
 post "/lists/:list_id/complete_all" do 
   @list_id = params[:list_id].to_i
-  @list = session[:lists][@list_id]
+  @list = load_list(@list_id)
 
   @list[:todos].each { |todo| todo[:completed] = true }
 
