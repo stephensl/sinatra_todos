@@ -1,18 +1,14 @@
 <section id="todos">
   <header>
-    <h2>Editing "<%= @list[:name]%>"</h2>
-  </header>
-  
-  <form action="/lists/<%= @id %>/delete" method="post" class="inline">
+    <h2>Editing "<%= @list[:name] %>"</h2>
     <ul>
       <li>
-        <fieldset class="actions">
-          <input type="submit" value="Delete List" class="delete-button">
-        </fieldset>
+        <form action="/lists/<%= @id %>/delete" method="post" class="inline">
+          <button type="submit" class = "delete">Delete List</button>
+        </form>
       </li>
     </ul>
-  </form>
-<header>
+  <header>
 </section>
 
 <form action="/lists/<%= params[:id] %>" method="post">

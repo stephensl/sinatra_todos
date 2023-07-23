@@ -41,6 +41,12 @@ def error_for_list_name(name)
   end
 end
 
+def error_for_todo(name)
+  if !name.size.between?(1, 100)
+    "Todo must be between 1 and 100 characters."
+  end 
+end
+
 # Create a new list
 post "/lists" do
   list_name = params[:list_name].strip
@@ -59,8 +65,8 @@ end
 
 # View Single List
 get "/lists/:id" do 
-  @id = params[:id].to_i
-  @list = session[:lists][@id]
+  @list_id = params[:id].to_i
+  @list = session[:lists][@list_id]
   erb :list, layout: :layout
 end 
 
@@ -89,10 +95,17 @@ post "/lists/:id" do
   end
 end 
 
+# Delete Single List from Lists array
 def delete_list(lists, id)
-    lists.delete_at(id)
+  lists.delete_at(id)
 end
 
+# Delete Single todo from List of todos
+def delete_todo(list, todo_id)
+  list[:todos].delete_at(todo_id)
+end 
+
+# Delete list
 post "/lists/:id/delete" do 
   @lists = session[:lists]
   @id = params[:id].to_i
@@ -101,4 +114,61 @@ post "/lists/:id/delete" do
   
   session[:success] = "List Removed"
   redirect "/lists"
+end 
+
+# Add a todo to list
+post "/lists/:list_id/todos" do 
+  @list_id = params[:list_id].to_i
+  @list = session[:lists][@list_id]
+  text = params[:todo].strip 
+
+  error = error_for_todo(text)
+  if error 
+    session[:error] = error
+    erb :list, layout: :layout 
+  else 
+    @list[:todos] << {name: params[:todo], completed: false}
+    session[:success] = "The todo was added"
+    redirect "/lists/#{@list_id}"
+  end 
+end 
+
+# Delete todo item from list 
+post "/lists/:list_id/todos/:todo_id/delete" do 
+  @list_id = params[:list_id].to_i
+  @list = session[:lists][@list_id]
+
+  @todo_id = params[:todo_id].to_i
+  
+  delete_todo(@list, @todo_id)
+  
+  session[:success] = "Todo Removed"
+  redirect "/lists/#{@list_id}"
+end 
+
+# Update the status of a todo 
+post "/lists/:list_id/todos/:todo_id" do 
+  @list_id = params[:list_id].to_i
+  @list = session[:lists][@list_id]
+
+  @todo_id = params[:todo_id].to_i
+  is_completed = params[:completed] == "true"
+  
+  @todo = @list[:todos][@todo_id]
+
+  @todo[:completed] = is_completed
+
+  session[:success] = "The todo has been updated."
+  redirect "/lists/#{@list_id}"
+end
+
+# Mark all todos complete for single list
+post "/lists/:list_id/complete_all" do 
+  @list_id = params[:list_id].to_i
+  @list = session[:lists][@list_id]
+
+  @list[:todos].each { |todo| todo[:completed] = true }
+
+  session[:success] = "All todos marked 'complete'."
+  redirect "/lists/#{@list_id}"
 end 
