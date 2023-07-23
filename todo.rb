@@ -1,5 +1,5 @@
 require "sinatra"
-require "sinatra/reloader"
+require "sinatra/reloader" if development?
 require "sinatra/content_for"
 require "tilt/erubis"
 
@@ -7,6 +7,46 @@ configure do
   enable :sessions
   set :session_secret, SecureRandom.hex(32)
 end
+
+helpers do 
+  def list_complete?(list)
+    todos_count(list) > 0 && todos_remaining_count(list) == 0 
+  end 
+
+  def todo_complete?(todo)
+    todo[:completed]
+  end 
+
+  def list_class(list)
+    "complete" if list_complete?(list)
+  end 
+
+  def todos_count(list)
+    list[:todos].size
+  end 
+
+  def todos_remaining_count(list)
+    list[:todos].select { |todo| !todo[:completed] }.size 
+  end 
+
+  def sort_lists(lists, &block)
+    complete_lists, incomplete_lists = lists.partition do |list|
+      list_complete?(list)
+    end 
+
+    incomplete_lists.each { |list| yield(list, lists.index(list)) }
+    complete_lists.each { |list| yield(list, lists.index(list)) }
+  end 
+
+  def sort_todos(todos, &block)
+    complete_todos, incomplete_todos = todos.partition do |todo|
+      todo_complete?(todo)
+    end 
+
+    incomplete_todos.each { |todo| yield(todo, todos.index(todo)) }
+    complete_todos.each { |todo| yield(todo, todos.index(todo)) }
+  end 
+end 
 
 before do
   session[:lists] ||= []
@@ -21,7 +61,7 @@ end
 # POST /lists          -> create new list
 # GET  /lists/1        -> view a single list
 
-# View all of lists
+# View list of all lists
 get "/lists" do
   @lists = session[:lists]
   erb :lists, layout: :layout
