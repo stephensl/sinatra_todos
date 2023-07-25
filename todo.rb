@@ -54,6 +54,18 @@ helpers do
     incomplete_todos.each { |todo| yield(todo, todos.index(todo)) }
     complete_todos.each { |todo| yield(todo, todos.index(todo)) }
   end 
+
+  def next_todo_id(list)
+    if list[:todos].empty?
+      return 1
+    end 
+  end 
+  #   else
+  #     ids = list[:todos].{ |todo| todo[:todo_id] }
+  #     max_id = ids.max
+  #     return max_id + 1
+  #   end
+  # end
 end 
 
 before do
@@ -162,10 +174,21 @@ post "/lists/:id/delete" do
   @id = params[:id].to_i
   
   delete_list(@lists, @id)
+
+  if env["HTTP_X_REQUESTED_WITH"] = "XMLHttpRequest"
+    "/lists"
+  else 
+    session[:success] = "List Removed"
+    redirect "/lists"
+  end 
   
-  session[:success] = "List Removed"
-  redirect "/lists"
+
 end 
+
+
+
+
+
 
 # Add a new todo to list
 post "/lists/:list_id/todos" do 
@@ -178,8 +201,9 @@ post "/lists/:list_id/todos" do
     session[:error] = error
     erb :list, layout: :layout 
   else 
-    @list[:todos] << {name: params[:todo], completed: false}
-    session[:success] = "The todo was added"
+    @todo_id = next_todo_id(@list)
+    @list[:todos] << {id: @id, name: text, completed: false}
+    session[:success] = "The todo was added, with id number: (#{@todo_id})."
     redirect "/lists/#{@list_id}"
   end 
 end 
@@ -192,9 +216,13 @@ post "/lists/:list_id/todos/:todo_id/delete" do
   @todo_id = params[:todo_id].to_i
   
   delete_todo(@list, @todo_id)
-  
-  session[:success] = "Todo Removed"
-  redirect "/lists/#{@list_id}"
+
+  if env["HTTP_X_REQUESTED_WITH"] = "XMLHttpRequest"
+    status 204
+  else 
+    session[:success] = "Todo Removed"
+    redirect "/lists/#{@list_id}"
+  end 
 end 
 
 # Update the status of a todo 
