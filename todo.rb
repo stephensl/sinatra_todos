@@ -2,6 +2,7 @@ require "sinatra"
 require "sinatra/reloader" if development?
 require "sinatra/content_for"
 require "tilt/erubis"
+require 'pry'
 
 configure do
   enable :sessions
@@ -51,22 +52,20 @@ helpers do
       todo_complete?(todo)
     end 
 
-    incomplete_todos.each { |todo| yield(todo, todos.index(todo)) }
-    complete_todos.each { |todo| yield(todo, todos.index(todo)) }
+    incomplete_todos.each(&block)
+    complete_todos.each(&block)
   end 
 
-  def next_todo_id(list)
-    if list[:todos].empty?
+  def next_todo_id(todos)
+    if todos.empty?
       return 1
-    end 
-  end 
-  #   else
-  #     ids = list[:todos].{ |todo| todo[:todo_id] }
-  #     max_id = ids.max
-  #     return max_id + 1
-  #   end
-  # end
-end 
+    else
+      ids = todos.map { |todo| todo[:id] }
+      max_id = ids.max
+      return max_id + 1
+    end
+  end
+end
 
 before do
   session[:lists] ||= []
@@ -163,11 +162,6 @@ def delete_list(lists, id)
   lists.delete_at(id)
 end
 
-# Delete Single todo from List of todos
-def delete_todo(list, todo_id)
-  list[:todos].delete_at(todo_id)
-end 
-
 # Delete list
 post "/lists/:id/delete" do 
   @lists = session[:lists]
@@ -181,14 +175,7 @@ post "/lists/:id/delete" do
     session[:success] = "List Removed"
     redirect "/lists"
   end 
-  
-
 end 
-
-
-
-
-
 
 # Add a new todo to list
 post "/lists/:list_id/todos" do 
@@ -201,21 +188,21 @@ post "/lists/:list_id/todos" do
     session[:error] = error
     erb :list, layout: :layout 
   else 
-    @todo_id = next_todo_id(@list)
-    @list[:todos] << {id: @id, name: text, completed: false}
-    session[:success] = "The todo was added, with id number: (#{@todo_id})."
+    todo_id = next_todo_id(@list[:todos])
+    @list[:todos] << {id: todo_id, name: text, completed: false}
+    session[:success] = "The todo was added to the list."
     redirect "/lists/#{@list_id}"
   end 
 end 
 
 # Delete todo item from list 
-post "/lists/:list_id/todos/:todo_id/delete" do 
+post "/lists/:list_id/todos/:id/delete" do 
   @list_id = params[:list_id].to_i
   @list = load_list(@list_id)
 
-  @todo_id = params[:todo_id].to_i
+  todo_id = params[:id].to_i
   
-  delete_todo(@list, @todo_id)
+  @list[:todos].reject! { |todo| todo[:id] == todo_id } 
 
   if env["HTTP_X_REQUESTED_WITH"] = "XMLHttpRequest"
     status 204
@@ -226,16 +213,16 @@ post "/lists/:list_id/todos/:todo_id/delete" do
 end 
 
 # Update the status of a todo 
-post "/lists/:list_id/todos/:todo_id" do 
+post "/lists/:list_id/todos/:id" do 
   @list_id = params[:list_id].to_i
   @list = load_list(@list_id)
 
-  @todo_id = params[:todo_id].to_i
+  todo_id = params[:id].to_i
   is_completed = params[:completed] == "true"
   
-  @todo = @list[:todos][@todo_id]
+  todo = @list[:todos].find { |todo| todo[:id] == todo_id } 
 
-  @todo[:completed] = is_completed
+  todo[:completed] = is_completed
 
   session[:success] = "The todo has been updated."
   redirect "/lists/#{@list_id}"

@@ -5,6 +5,7 @@ gem "sinatra-contrib"
 gem "erubis"
 gem "webrick"
 gem "rubocop"
+gem "pry"
 
 group :production do 
   gem "puma"
